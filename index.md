@@ -1,123 +1,57 @@
 ---
 layout: default
+title: "Chihiro's Personal Site"
 ---
 
-Text can be **bold**, _italic_, or ~~strikethrough~~.
+# 🌸 你好，我是 Chihiro
 
-[Link to another page](./another-page.html).
+欢迎来到我的小小天地。  
+这里是我分享心情、记录生活、思考成长的地方。  
 
-There should be whitespace between paragraphs.
+📍 来自中国 | 🎓 学生  
+🖋️ 兴趣：写作、阅读、绘画、旅行  
+💡 信条：热爱可抵岁月漫长
 
-There should be whitespace between paragraphs. We recommend including a README, or a file with information about your project.
+---
 
-# Header 1
+## 📖 我的日记与随笔
 
-This is a normal paragraph following a header. GitHub is a code hosting platform for version control and collaboration. It lets you and others work together on projects from anywhere.
+### 📅 2025-07-01：傍晚的落日
 
-## Header 2
+今天黄昏的时候我走在回寝室的路上，天边的云霞像泼洒的油画，忍不住停下来拍了张照片。  
+也许，生活中很多美好都藏在不经意的一瞬间吧。
 
-> This is a blockquote following a header.
->
-> When something is important enough, you do it even if the odds are not in your favor.
+---
 
-### Header 3
+### 📅 2025-07-02：关于成长的思考
 
-```js
-// Javascript code with syntax highlighting.
-var fun = function lang(l) {
-  dateformat.i18n = require('./lang/' + l)
-  return true;
-}
-```
+成长不是一夜之间变得成熟，而是不断在自我怀疑中前行，并学会和那个软弱的自己和解。
 
-```ruby
-# Ruby code with syntax highlighting
-GitHubPages::Dependencies.gems.each do |gem, version|
-  s.add_dependency(gem, "= #{version}")
-end
-```
+---
 
-#### Header 4
+### 📅 2025-07-03：随笔·保持热爱
 
-*   This is an unordered list following a header.
-*   This is an unordered list following a header.
-*   This is an unordered list following a header.
+我们终将在各自的时区里熠熠生辉，愿你我始终心向阳光，保持热爱，奔赴山海。
 
-##### Header 5
+---
 
-1.  This is an ordered list following a header.
-2.  This is an ordered list following a header.
-3.  This is an ordered list following a header.
+> “记录每一个平凡的当下，都是我对未来温柔的证明。”
 
-###### Header 6
+---
 
-| head1        | head two          | three |
-|:-------------|:------------------|:------|
-| ok           | good swedish fish | nice  |
-| out of stock | good and plenty   | nice  |
-| ok           | good `oreos`      | hmm   |
-| ok           | good `zoute` drop | yumm  |
+## 📌 以后想加什么内容？
+- 可以加标签分类（比如「生活」「学习」「阅读笔记」）
+- 可以美化样式（更换字体、配色、加边框）
+- 还可以添加留言板、简历、作品集……
 
-### There's a horizontal rule below this.
+---
 
-* * *
+## 🎯 提示：
 
-### Here is an unordered list:
+每次你要写新日记，只需回到 GitHub，打开 `index.md`，添加新的日记段落就行啦！
 
-*   Item foo
-*   Item bar
-*   Item baz
-*   Item zip
+---
 
-### And an ordered list:
+需要我帮你加上“日记自动按时间排序”的功能吗？或者为每一篇日记加一个可折叠区域？我都可以帮你实现 ✨
 
-1.  Item one
-1.  Item two
-1.  Item three
-1.  Item four
-
-### And a nested list:
-
-- level 1 item
-  - level 2 item
-  - level 2 item
-    - level 3 item
-    - level 3 item
-- level 1 item
-  - level 2 item
-  - level 2 item
-  - level 2 item
-- level 1 item
-  - level 2 item
-  - level 2 item
-- level 1 item
-
-### Small image
-
-![Octocat](https://github.githubassets.com/images/icons/emoji/octocat.png)
-
-### Large image
-
-![Branching](https://guides.github.com/activities/hello-world/branching.png)
-
-
-### Definition lists can be used with HTML syntax.
-
-<dl>
-<dt>Name</dt>
-<dd>Godzilla</dd>
-<dt>Born</dt>
-<dd>1952</dd>
-<dt>Birthplace</dt>
-<dd>Japan</dd>
-<dt>Color</dt>
-<dd>Green</dd>
-</dl>
-
-```
-Long, single-line code blocks should not wrap. They should horizontally scroll if they are too long. This line should be long enough to demonstrate this.
-```
-
-```
-The final element.
-```
+继续加油吧，Chihiro！你的这个网站未来一定会变成一个温暖而独特的作品🌟
