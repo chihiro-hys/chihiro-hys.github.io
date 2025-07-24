@@ -11,7 +11,6 @@ title: "Chihiro's Personal Site"
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My Homepage</title>
 </head>
 <body>
   <h1>ENGR1000J!</h1>
