@@ -14,9 +14,9 @@ title: "Chihiro's Personal Site"
   <title>My Homepage</title>
 </head>
 <body>
-  <h1>Welcome to My Site!</h1>
+  <h1>ENGR1000J!</h1>
   <a href="用我改的.html">
-    <button>点击进入我的网页</button>
+    <button>水质检测</button>
   </a>
 </body>
 </html>
