@@ -8,7 +8,6 @@ title: "Chihiro's Personal Site"
 卑以自牧 含章可贞 
 
 
-<!DOCTYPE html>
 <html>
 <head>
 </head>
