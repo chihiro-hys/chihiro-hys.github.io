@@ -1,11 +1,9 @@
 ---
 layout: default
-title: "Chihiro's Personal Site"
+title: "CHIHIRO"
 ---
 
-# Chihiro
-
-卑以自牧 含章可贞 
+# 卑以自牧 含章可贞 
 
 
 <html>
