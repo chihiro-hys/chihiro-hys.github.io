@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hydro-powered water quality monitor</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            max-width: 1400px;
+            margin: 0 auto 30px auto;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+        }
+        .logo { width: 200px; height: 100px; margin-right: 25px; object-fit: contain; }
+        .product-name {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .controls { margin-left: auto; display: flex; align-items: center; gap: 20px; }
+        .control-group { display: flex; align-items: center; gap: 10px; }
+        .control-group label { font-size: 1em; font-weight: 500; color: #374151; }
+        .control-group select {
+            background-color: #f8f9fa; color: #374151;
+            border: 1px solid #d1d5db; border-radius: 8px;
+            padding: 8px 12px; font-size: 1em; cursor: pointer;
+        }
+        .mqtt-status {
+            padding: 10px 20px; border-radius: 20px; font-size: 1.1em;
+            font-weight: bold; color: white; transition: background-color 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .status-connected { background-color: #4caf50; }
+        .status-connecting, .status-reconnecting { background-color: #ff9800; }
+        .status-error { background-color: #f44336; }
+        .status-warning { background-color: #ffc107; color: #212939; }
+        
+        .dashboard-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            gap: 28px;
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 22px;
+            box-shadow: 0 14px 38px rgba(100, 120, 150, 0.12);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 2px solid transparent;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .card.warning { background-color: #fffbe6; border-color: #ffe58f; }
+        .card.danger { background-color: #fff1f0; border-color: #ffa39e; }
+
+        .kpi-header { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 1.1em; color: #374151; }
+        .kpi-header i { font-size: 1.4em; }
+        .kpi-body { display: flex; justify-content: space-between; align-items: flex-end; }
+        .kpi-value-section { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
+        .kpi-value { font-size: 2.8em; font-weight: 700; color: #1f2937; line-height: 1; }
+        .kpi-unit { font-size: 0.5em; margin-left: 5px; color: #6b7280; }
+        
+        .progress {
+            height: 12px; border-radius: 6px; overflow: hidden;
+            background: #e5e7eb; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            height: 100%; width: 0;
+            transition: width 0.5s ease-in-out, background-color 0.5s ease;
+            border-radius: 6px;
+        }
+        
+        .status-card {
+            grid-column: span 3;
+        }
+        .status-card-title { font-weight: 600; font-size: 1.2em; color: #374151; margin-bottom: 10px; }
+        .status-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #f3f4f6;
+        }
+        .status-item:last-child { border-bottom: none; }
+        .status-label { font-size: 1.1em; font-weight: 500; }
+        .status-value { text-align: right; }
+
+        .level-container { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; flex-grow: 1; }
+        .level-badge {
+            font-size: 0.9em;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            color: white;
+            background: #d1d5db;
+            opacity: 0.5;
+            cursor: default;
+            transition: 
+                transform 0.4s ease,
+                opacity 0.4s ease,
+                margin 0.4s ease;
+            transform: scale(1);
+            margin: 4px;
+        }
+
+        .level-badge.active {
+            opacity: 1;
+            font-weight: 700;
+            transform: scale(1.3) translateX(-8px); /* 放大且左移8px */
+            transition: transform 0.4s ease;
+        }
+
+        .level-badge.shift-left {
+            /* 这里给左边的标签使用，左移12px，不放大 */
+            transform: translateX(-12px);
+            transition: transform 0.4s ease;
+        }
+
+        /* 防止普通标签有transform */
+        .level-badge {
+            transform: scale(1) translateX(0);
+            transition: transform 0.4s ease;
+        }
+
+
+        /* -------- pH Level -------- */
+        .ph-Strong-Acid { background: #f87171; }
+        .ph-Acidic { background: #fbbf24; }
+        .ph-Neutral { background: #34d399; }
+        .ph-Alkaline { background: #60a5fa; }
+        .ph-Strong-Base { background: #818cf8; }
+
+        /* -------- TDS Level -------- */
+        .tds-Purified-Distilled { background: #99f6e4; color: #064e3b; }
+        .tds-Soft-Water { background: #5eead4; color: #065f46; }
+        .tds-Typical { background: #4ade80; }
+        .tds-Acceptable { background: #fde047; color: #78350f; }
+        .tds-Hard-Water { background: #fbbf24; color: #92400e; }
+        .tds-Contaminated { background: #f87171; }
+
+        /* -------- Turbidity Level -------- */
+        .turbidity-Crystal-Clear { background: #bae6fd; color: #0c4a6e; }
+        .turbidity-Clear { background: #7dd3fc; color: #075985; }
+        .turbidity-Slightly-Cloudy { background: #fef08a; color: #78350f; }
+        .turbidity-Cloudy { background: #fcd34d; color: #78350f; }
+        .turbidity-Very-Cloudy { background: #fbbf24; color: #78350f; }
+        .turbidity-Heavily-Polluted { background: #f87171; }
+
+
+        .chart-grid-wrapper {
+            grid-column: 1 / -1;
+            display: grid;
+            gap: 28px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+        .history-chart-card {
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        .history-chart-title {
+            font-weight: 600;
+            font-size: 1.1em;
+            color: #374151;
+            text-align: center;
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+        .history-chart-container {
+            width: 100%;
+            flex-grow: 1;
+        }
+        
+        @media (max-width: 1200px) { 
+            .dashboard-wrapper { grid-template-columns: repeat(2, 1fr); }
+            .status-card { grid-column: 1 / -1; }
+        }
+        @media (max-width: 768px) { 
+            .dashboard-wrapper { grid-template-columns: 1fr; } 
+            .header { flex-direction: column; gap: 15px; text-align: center; } 
+            .controls { margin-left: 0; }
+            .status-card { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <img src="my_logo.jpg" alt="Team Logo" class="logo">
+        <h1 class="product-name">Hydro-powered water quality monitor</h1>
+        <div class="controls">
+            <div class="control-group">
+                <label for="interval-select">Refresh Rate:</label>
+                <select id="interval-select">
+                    <option value="2000">2s</option><option value="5000">5s</option>
+                    <option value="10000">10s</option><option value="30000">30s</option>
+                    <option value="60000">1m</option>
+                </select>
+            </div>
+            <div id="mqtt-status" class="mqtt-status">Initializing...</div>
+        </div>
+    </header>
+
+    <div class="dashboard-wrapper" id="dashboardWrapper"></div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- 硬件与网页等级文本映射关系 ---
+        const LEVEL_MAPPING = {
+            // TDS Level 映射（硬件长文本 -> 网页短标签）
+            "Purified/Distilled Water (Very Low Minerals)": "Purified/Distilled",
+            "Soft Water (Very Low TDS)": "Soft Water",
+            "Typical Drinking Water (Safe)": "Typical",
+            "Acceptable Drinking Water": "Acceptable",
+            "Hard Water / Possibly Unsafe": "Hard Water",
+            "Heavily Contaminated (Not Safe)": "Contaminated",
+            
+            // Turbidity Level 映射（文本一致）
+            "Crystal Clear": "Crystal Clear",
+            "Clear": "Clear",
+            "Slightly Cloudy": "Slightly Cloudy",
+            "Cloudy": "Cloudy",
+            "Very Cloudy": "Very Cloudy",
+            "Heavily Polluted": "Heavily Polluted",
+            
+            // pH Level 映射（文本一致）
+            "Strong Acid": "Strong Acid",
+            "Acidic": "Acidic",
+            "Neutral": "Neutral",
+            "Alkaline": "Alkaline",
+            "Strong Base": "Strong Base"
+        };
+
+        // --- 配置参数 ---
+        const BROKER_URL = 'ws://broker.emqx.io:8083/mqtt';
+        const MQTT_TOPICS = [ 'home/tds_level', 'home/ph_level', 'home/ph', 'home/turbidity_level', 'home/turbidity', 'home/tds', 'home/temp_ds18b20', 'home/temperature', 'home/humidity' ];
+        const MAX_DATA_POINTS = 50;
+        const MIN_NEW_MESSAGES_TO_PLOT = 4;
+        const SENSOR_KEYS = ['temperature', 'temp_ds18b20', 'humidity', 'ph', 'tds', 'turbidity'];
+        const LEVEL_KEYS = ['ph_level', 'tds_level', 'turbidity_level'];
+        const SENSOR_META = {
+            temperature: { name: 'Temperature', icon: 'bi-thermometer-half', unit: '°C', min: 0, max: 50 },
+            temp_ds18b20: { name: 'DS18B20 Temp', icon: 'bi-thermometer-sun', unit: '°C', min: 0, max: 50 },
+            humidity: { name: 'Humidity', icon: 'bi-droplet-half', unit: '%', min: 0, max: 100 },
+            ph: { name: 'pH Value', icon: 'bi-flower1', unit: '', min: 0, max: 14 },
+            tds: { name: 'TDS', icon: 'bi-gem', unit: 'ppm', min: 0, max: 1000 },
+            turbidity: { name: 'Turbidity', icon: 'bi-cloud-drizzle', unit: 'NTU', min: 0, max: 400 }
+        };
+
+        // --- 全局变量 ---
+        const statusDiv = document.getElementById('mqtt-status');
+        const intervalSelect = document.getElementById('interval-select');
+        const dashboardWrapper = document.getElementById('dashboardWrapper');
+        let chartUpdateTimer = null;
+        let lastMessageTimestamp = null;
+        let currentInterval = localStorage.getItem('chartInterval') || '5000';
+        intervalSelect.value = currentInterval;
+
+        const ui = {};
+        const charts = {};
+        let chartData = {};
+        let latestDataForChart = {};
+        
+        // --- UI创建函数 ---
+        function initializeDashboard() {
+            dashboardWrapper.innerHTML = '';
+            
+            let kpiHtml = SENSOR_KEYS.map(key => getKpiCardHtml(key, SENSOR_META[key])).join('');
+            let statusHtml = getStatusCardHtml();
+            let historyChartHtml = SENSOR_KEYS.map(key => getHistoryChartCardHtml(key)).join('');
+            
+            dashboardWrapper.innerHTML = kpiHtml + statusHtml + `<div class="chart-grid-wrapper">${historyChartHtml}</div>`;
+
+            // 初始化传感器UI和图表
+            SENSOR_KEYS.forEach(key => {
+                ui[key] = {
+                    value: document.getElementById(`value-${key}`),
+                    progress: document.getElementById(`progress-${key}`),
+                    card: document.getElementById(`card-${key}`),
+                };
+                charts[`history_${key}`] = echarts.init(document.getElementById(`history-chart-${key}`));
+                charts[`history_${key}`].setOption(getHistoryChartOption(key));
+            });
+            // 初始化等级UI
+            LEVEL_KEYS.forEach(key => {
+                ui[key] = { container: document.getElementById(`levels-${key}`) };
+            });
+        }
+
+        function getKpiCardHtml(key, options = {}) {
+            const unit = options.unit || '';
+            return `
+                <div class="card" id="card-${key}">
+                    <div class="kpi-header"><i class="bi ${options.icon}"></i><span>${options.name}</span></div>
+                    <div class="kpi-body">
+                        <div class="kpi-value-section">
+                            <div class="kpi-value"><span id="value-${key}">--</span><span class="kpi-unit">${unit}</span></div>
+                            <div class="progress"><div class="progress-bar" id="progress-${key}"></div></div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function getStatusCardHtml() {
+            const levelOptions = {
+                ph_level: [ {label: "Strong Acid"}, {label: "Acidic"}, {label: "Neutral"}, {label: "Alkaline"}, {label: "Strong Base"} ],
+                tds_level: [ {label: "Purified/Distilled"}, {label: "Soft Water"}, {label: "Typical"}, {label: "Acceptable"}, {label: "Hard Water"}, {label: "Contaminated"} ],
+                turbidity_level: [ {label: "Crystal Clear"}, {label: "Clear"}, {label: "Slightly Cloudy"}, {label: "Cloudy"}, {label: "Very Cloudy"}, {label: "Heavily Polluted"} ]
+            };
+            const levelNames = { ph_level: 'pH Level', tds_level: 'TDS Level', turbidity_level: 'Turbidity Level' };
+            let levelItemsHtml = LEVEL_KEYS.map(key => {
+                const badgesHtml = levelOptions[key].map(option => {
+                    const className = `${key.replace('_level', '-')}${option.label.replace(/[/ ]/g, '-')}`;
+                    return `<div class="level-badge ${className}">${option.label}</div>`;
+                }).join('');
+                return `<div class="status-item"><span class="status-label">${levelNames[key]}</span><div class="status-value level-container" id="levels-${key}">${badgesHtml}</div></div>`;
+            }).join('');
+
+            return `<div class="card status-card"><div class="status-card-title">System Status</div>${levelItemsHtml}</div>`;
+        }
+
+        function getHistoryChartCardHtml(key) {
+            return `
+                <div class="card history-chart-card">
+                    <div class="history-chart-title">${SENSOR_META[key].name}</div>
+                    <div class="history-chart-container" id="history-chart-${key}"></div>
+                </div>`;
+        }
+
+        // --- 动画与更新逻辑 ---
+        function animateValue(element, start, end, duration) { 
+            if (!element) return; 
+            const animationFrameMap = new Map(); 
+            if (animationFrameMap.has(element)) { 
+                cancelAnimationFrame(animationFrameMap.get(element)); 
+            } 
+            const startTime = performance.now(); 
+            const range = end - start; 
+            const decimalPlaces = (end.toString().split('.')[1] || '').length; 
+            
+            function step(currentTime) { 
+                const elapsedTime = currentTime - startTime; 
+                const progress = Math.min(elapsedTime / duration, 1); 
+                const currentValue = start + range * progress; 
+                element.textContent = currentValue.toFixed(decimalPlaces); 
+                if (progress < 1) { 
+                    animationFrameMap.set(element, requestAnimationFrame(step)); 
+                } else { 
+                    animationFrameMap.delete(element); 
+                } 
+            } 
+            animationFrameMap.set(element, requestAnimationFrame(step)); 
+        }
+
+        function updateKpi(key, value) { 
+            if (!ui[key] || !ui[key].value) return; 
+            const oldValueText = ui[key].value.textContent; 
+            const oldValue = oldValueText === '--' ? value : parseFloat(oldValueText); 
+            animateValue(ui[key].value, oldValue, value, 750); 
+            
+            const maxVal = SENSOR_META[key].max; 
+            const progress = Math.min(value / maxVal, 1) * 100; 
+            ui[key].progress.style.width = `${progress}%`; 
+            ui[key].progress.style.backgroundColor = `hsl(${(1 - progress / 100) * 120}, 75%, 60%)`; 
+        }
+
+        function updateLevel(key, textValue) {
+            if (!ui[key] || !ui[key].container) return;
+            const badges = ui[key].container.children;
+            const mappedText = LEVEL_MAPPING[textValue] || textValue;
+            const incomingTextLower = mappedText.toLowerCase();
+
+            // 清除所有状态
+            for (let badge of badges) {
+                badge.classList.remove('active', 'shift-left');
+            }
+
+            // 找到选中标签索引
+            let activeIndex = -1;
+            for (let i = 0; i < badges.length; i++) {
+                if (badges[i].textContent.toLowerCase() === incomingTextLower) {
+                    activeIndex = i;
+                    break;
+                }
+            }
+
+            if (activeIndex >= 0) {
+                // 选中标签放大并左移8px
+                badges[activeIndex].classList.add('active');
+
+                // 左边标签左移12px（如果存在）
+                if (activeIndex > 0) {
+                    badges[activeIndex - 1].classList.add('shift-left');
+                }
+            }
+        }
+
+
+
+        
+        // --- 图表配置 ---
+        const getHistoryChartOption = (key) => ({ 
+            tooltip: { trigger: 'axis' }, 
+            grid: { top: '10%', left: '3%', right: '4%', bottom: '15%', containLabel: true }, 
+            xAxis: { type: 'category', boundaryGap: false, data: [], axisLabel: { fontSize: 10 } }, 
+            yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } }, axisLabel: { fontSize: 10 } }, 
+            series: [{ 
+                name: SENSOR_META[key].name, 
+                type: 'line', 
+                smooth: true, 
+                data: [], 
+                showSymbol: false, 
+                lineStyle: { width: 3 } 
+            }] 
+        });
+        
+        // --- MQTT逻辑 ---
+        function updateStatus(message, type) { 
+            if (statusDiv.textContent !== message) { 
+                statusDiv.textContent = message; 
+                statusDiv.className = `mqtt-status status-${type}`; 
+            } 
+        }
+        
+        const client = mqtt.connect(BROKER_URL);
+        client.on('connect', () => { 
+            updateStatus('Connected', 'connected'); 
+            client.subscribe(MQTT_TOPICS); 
+        });
+        client.on('error', () => { 
+            updateStatus('Connection Error', 'error'); 
+        });
+        client.on('reconnect', () => { 
+            updateStatus('Reconnecting...', 'reconnecting'); 
+        });
+        client.on('message', (topic, payload) => {
+            lastMessageTimestamp = Date.now();
+            const key = topic.substring(topic.lastIndexOf('/') + 1);
+            const message = payload.toString();
+            latestDataForChart[key] = message; 
+
+            if (LEVEL_KEYS.includes(key)) {
+                updateLevel(key, message);
+            } else {
+                const value = parseFloat(message);
+                if (!isNaN(value)) {
+                    updateKpi(key, value);
+                }
+            }
+        });
+        
+        // --- 主循环与状态检查 ---
+        function startChartUpdate(interval) {
+            if (chartUpdateTimer) clearInterval(chartUpdateTimer);
+            chartUpdateTimer = setInterval(() => {
+                if (client.connected) { 
+                    updateStatus('Connected', 'connected'); 
+                }
+                
+                const hasNewMessages = Object.keys(latestDataForChart).length > 0;
+                if (hasNewMessages && Object.keys(latestDataForChart).length >= MIN_NEW_MESSAGES_TO_PLOT) {
+                    const now = Date.now();
+                    if (!chartData.time) chartData.time = [];
+                    chartData.time.push(new Date(now).toLocaleTimeString());
+                    if (!chartData.timestamps) chartData.timestamps = [];
+                    chartData.timestamps.push(now);
+                    
+                    SENSOR_KEYS.forEach(key => {
+                        if (!chartData[key]) chartData[key] = [];
+                        const newValue = latestDataForChart[key];
+                        chartData[key].push(newValue !== undefined ? 
+                            parseFloat(newValue) : 
+                            (chartData[key].length > 0 ? chartData[key][chartData[key].length - 1] : null)
+                        );
+                    });
+                    
+                    // 限制数据点数量
+                    if (chartData.time.length > MAX_DATA_POINTS) { 
+                        Object.values(chartData).forEach(arr => arr && arr.shift()); 
+                    }
+                    
+                    localStorage.setItem('chartData', JSON.stringify(chartData));
+                    latestDataForChart = {};
+                } else if (hasNewMessages) {
+                    // 数据点不足，暂不更新图表
+                    latestDataForChart = {};
+                }
+                
+                // 更新图表数据
+                SENSOR_KEYS.forEach(key => {
+                    const historyChart = charts[`history_${key}`];
+                    if (historyChart && chartData[key]) {
+                        historyChart.setOption({ 
+                            xAxis: { data: chartData.time }, 
+                            series: [{ data: chartData[key] }] 
+                        });
+                    }
+                });
+            }, interval);
+        }
+
+        // 刷新频率变更事件
+        intervalSelect.addEventListener('change', (event) => {
+            currentInterval = event.target.value;
+            localStorage.setItem('chartInterval', currentInterval);
+            startChartUpdate(currentInterval);
+        });
+
+        // --- 初始化加载 ---
+        initializeDashboard();
+        const savedData = localStorage.getItem('chartData');
+        if (savedData) {
+            try {
+                chartData = JSON.parse(savedData);
+            } catch (e) {
+                console.error('Failed to parse saved chart data:', e);
+                chartData = {};
+            }
+        }
+        // 初始化图表数据结构
+        if (!chartData.time) chartData.time = [];
+        if (!chartData.timestamps) chartData.timestamps = [];
+        SENSOR_KEYS.forEach(key => {
+            if (!chartData[key]) chartData[key] = [];
+        });
+        startChartUpdate(currentInterval);
+        updateStatus('Connecting...', 'connecting');
+        
+        // 窗口大小变化时重绘图表
+        window.addEventListener('resize', () => {
+            Object.values(charts).forEach(chart => chart && chart.resize());
+        });
+        
+    });
+    </script>
+</body>
+</html>
