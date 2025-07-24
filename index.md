@@ -8,6 +8,21 @@ title: "Chihiro's Personal Site"
 卑以自牧 含章可贞 
 
 
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Homepage</title>
+</head>
+<body>
+  <h1>Welcome to My Site!</h1>
+  <a href="用我改的.html">
+    <button>点击进入我的网页</button>
+  </a>
+</body>
+</html>
+
+
+
 ---
 
 ## 千寻的日记
